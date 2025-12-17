@@ -1,0 +1,22 @@
+[workspace]
+
+[package]
+name = "exclusion-program-example"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "exclusion_program_example"
+
+[features]
+no-entrypoint = []
+default = []
+
+[dependencies]
+solana-program = "3.0.0"
+solana-system-interface = { version = "3.0.0", features = ["bincode"] }
+solana-poseidon = "3.0.0"
+
+# Pin to avoid edition2024 requirement
+base64ct = "=1.6.0"

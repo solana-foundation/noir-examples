@@ -1,0 +1,10 @@
+.claude/
+.vscode/
+**/target/
+**/node_modules/
+**/keypair/
+.DS_Store
+.env
+.env.*
+*.log
+dist/

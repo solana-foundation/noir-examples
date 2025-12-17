@@ -1,0 +1,6 @@
+[package]
+name = "verify_signer"
+type = "bin"
+authors = [""]
+
+[dependencies]
