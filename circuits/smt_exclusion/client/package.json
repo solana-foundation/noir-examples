@@ -1,0 +1,23 @@
+{
+  "name": "@solana-noir-examples/smt-exclusion-client",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "verify": "tsx verify.ts",
+    "test-transfer": "tsx test-transfer.ts"
+  },
+  "dependencies": {
+    "@solana/kit": "^5.1.0",
+    "@solana-program/compute-budget": "^0.11.0",
+    "@solana-program/system": "^0.10.0",
+    "@solana-noir-examples/lib": "file:../../../lib",
+    "circomlibjs": "^0.1.7",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/circomlibjs": "^0.1.6",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

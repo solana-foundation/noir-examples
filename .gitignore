@@ -1,0 +1,15 @@
+.claude/
+.vscode/
+**/target/
+!**/target/*.json
+**/target/*-keypair.json
+!**/target/*.ccs
+!**/target/*.pk
+!**/target/*.vk
+**/node_modules/
+**/keypair/
+.DS_Store
+.env
+.env.*
+*.log
+dist/

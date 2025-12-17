@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NOIR_VERSION: "1.0.0-beta.13"
+
+jobs:
+  test-circuits:
+    name: Test Noir Circuits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Noir
+        run: |
+          curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+          ~/.nargo/bin/noirup -v ${{ env.NOIR_VERSION }}
+          echo "$HOME/.nargo/bin" >> $GITHUB_PATH
+
+      - name: Test one
+        run: |
+          cd circuits/one
+          nargo test
+
+      - name: Test verify_signer
+        run: |
+          cd circuits/verify_signer
+          nargo test
+
+      - name: Test smt_exclusion
+        run: |
+          cd circuits/smt_exclusion
+          nargo test
+
+  check-rust:
+    name: Check Rust Program
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check on-chain program
+        run: |
+          cd circuits/smt_exclusion/on_chain_program
+          cargo check
+
+      - name: Clippy
+        run: |
+          cd circuits/smt_exclusion/on_chain_program
+          cargo clippy -- -D warnings
+
+      - name: Format check
+        run: |
+          cd circuits/smt_exclusion/on_chain_program
+          cargo fmt -- --check
+
+  typecheck-clients:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install shared lib
+        run: |
+          cd lib
+          npm install
+
+      - name: Install and check one client
+        run: |
+          cd circuits/one/client
+          npm install
+          npx tsc --noEmit
+
+      - name: Install and check verify_signer client
+        run: |
+          cd circuits/verify_signer/client
+          npm install
+          npx tsc --noEmit
+
+      - name: Install and check smt_exclusion client
+        run: |
+          cd circuits/smt_exclusion/client
+          npm install
+          npx tsc --noEmit
