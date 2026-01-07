@@ -16,7 +16,7 @@ const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 // NOTE: This is a devnet example program ID. For production, deploy your own
 // verifier via `sunspot deploy` and set PROGRAM_ID environment variable.
 const PROGRAM_ID =
-  process.env.PROGRAM_ID || "GqpSQrMPGNPsyMYEKAhGFT1NZMCVeM66dfBwxALQyWJ4";
+  process.env.PROGRAM_ID || "FgcE5gSBCgcS1aDympdw5RgQLt9RBMberPqsj4JZxdeL";
 
 const circuitConfig: CircuitConfig = {
   circuitDir: path.join(process.cwd(), ".."),

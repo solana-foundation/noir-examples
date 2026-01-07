@@ -55,7 +55,7 @@ impl From<ExclusionError> for ProgramError {
 /// NOTE: This is a devnet example. For production, deploy your own verifier via
 /// `sunspot deploy` and update this constant with the resulting program ID.
 pub const ZK_VERIFIER_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("882JeC9v8gp79QjgVV9mhWhjFZYj1QG4QKdcqKvgRh3U");
+    solana_program::pubkey!("548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN");
 
 /// State account size: 8 (discriminator) + 32 (admin) + 32 (smt_root) = 72 bytes
 pub const STATE_SIZE: usize = 8 + 32 + 32;

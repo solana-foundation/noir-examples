@@ -62,7 +62,7 @@ const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
 const ZK_VERIFIER_PROGRAM_ID = address(
   process.env.ZK_VERIFIER_PROGRAM_ID ||
-    "882JeC9v8gp79QjgVV9mhWhjFZYj1QG4QKdcqKvgRh3U"
+    "548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN"
 );
 
 const EXCLUSION_PROGRAM_ID = address(
