@@ -62,7 +62,7 @@ const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
 const ZK_VERIFIER_PROGRAM_ID = address(
   process.env.ZK_VERIFIER_PROGRAM_ID ||
-    "7bmTZpxFXvtZXthw3CDpruyb6fYFKbisEsg6R4dBX9TH"
+    "882JeC9v8gp79QjgVV9mhWhjFZYj1QG4QKdcqKvgRh3U"
 );
 
 const EXCLUSION_PROGRAM_ID = address(
@@ -72,7 +72,7 @@ const EXCLUSION_PROGRAM_ID = address(
 
 const circuitConfig: CircuitConfig = {
   circuitDir: path.join(process.cwd(), ".."),
-  circuitName: "circuit_smt_exclusion",
+  circuitName: "smt_exclusion",
 };
 
 const keypairDir = path.join(circuitConfig.circuitDir, "keypair");
@@ -104,25 +104,14 @@ async function createSignerFromBytes(
 
 type PdaResult = readonly [Address<string>, ProgramDerivedAddressBump];
 
-async function getStatePda(): Promise<PdaResult> {
-  const encoder = getAddressEncoder();
-  return getProgramDerivedAddress({
-    programAddress: EXCLUSION_PROGRAM_ID,
-    seeds: [
-      encoder
-        .encode(address("state11111111111111111111111111111111111111"))
-        .slice(0, 5),
-    ],
-  });
-}
-
 // Use text encoder for seeds
 const textEncoder = new TextEncoder();
+const addressEncoder = getAddressEncoder();
 
-async function getStatePdaWithTextSeed(): Promise<PdaResult> {
+async function getStatePdaForAdmin(admin: Address): Promise<PdaResult> {
   return getProgramDerivedAddress({
     programAddress: EXCLUSION_PROGRAM_ID,
-    seeds: [textEncoder.encode("state")],
+    seeds: [textEncoder.encode("state"), addressEncoder.encode(admin)],
   });
 }
 
@@ -148,7 +137,7 @@ async function initializeState(
   ctx: RpcContext,
   admin: KeyPairSigner
 ): Promise<string> {
-  const [statePda] = await getStatePdaWithTextSeed();
+  const [statePda] = await getStatePdaForAdmin(admin.address);
 
   const stateAccount = await ctx.rpc.getAccountInfo(statePda).send();
   if (stateAccount.value) {
@@ -187,7 +176,7 @@ async function setSmtRoot(
   admin: KeyPairSigner,
   smtRoot: Uint8Array
 ): Promise<string> {
-  const [statePda] = await getStatePdaWithTextSeed();
+  const [statePda] = await getStatePdaForAdmin(admin.address);
   const { value: latestBlockhash } = await ctx.rpc.getLatestBlockhash().send();
 
   const data = new Uint8Array(1 + 32);
@@ -223,9 +212,10 @@ async function transferSol(
   recipient: Address,
   amount: bigint,
   proofData: Uint8Array,
-  witnessData: Uint8Array
+  witnessData: Uint8Array,
+  stateOwner: Address
 ): Promise<string> {
-  const [statePda] = await getStatePdaWithTextSeed();
+  const [statePda] = await getStatePdaForAdmin(stateOwner);
   const { value: latestBlockhash } = await ctx.rpc.getLatestBlockhash().send();
 
   const data = new Uint8Array(1 + 8 + 388 + 76);
@@ -261,8 +251,15 @@ async function transferSol(
   const signedTx = await signTransactionMessageWithSigners(transactionMessage);
   assertIsSendableTransaction(signedTx);
   assertIsTransactionWithBlockhashLifetime(signedTx);
-  await ctx.sendAndConfirm(signedTx, { commitment: "confirmed" });
-  return getSignatureFromTransaction(signedTx);
+  const sig = getSignatureFromTransaction(signedTx);
+  try {
+    await ctx.sendAndConfirm(signedTx, { commitment: "confirmed" });
+  } catch (err: any) {
+    // Attach signature to error so caller can check tx status
+    err.signature = sig;
+    throw err;
+  }
+  return sig;
 }
 
 async function getBalances(
@@ -476,7 +473,8 @@ async function main() {
       recipient.address,
       transferAmount1,
       new Uint8Array(allowedProofResult.proof),
-      new Uint8Array(allowedProofResult.publicWitness)
+      new Uint8Array(allowedProofResult.publicWitness),
+      admin.address
     );
     console.log(`\n  ✅ SUCCESS! Transfer completed`);
     console.log(`  TX: https://explorer.solana.com/tx/${sig}?cluster=devnet`);
@@ -484,21 +482,18 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1000));
   } catch (err: any) {
     const logs = err.context?.logs || [];
-    const logsIndicateSuccess = logs.some(
-      (l: string) => l.includes("Transfer complete") || l.includes("success")
-    );
-    if (logsIndicateSuccess) {
-      console.log(`\n  ✅ SUCCESS! (tx landed despite confirmation timeout)`);
-      test1Success = true;
-      await new Promise((r) => setTimeout(r, 5000));
+    const sig = err.signature;
+    console.log(`\n  ❌ FAILED`);
+    if (sig) {
+      console.log(
+        `  TX (may not exist): https://explorer.solana.com/tx/${sig}?cluster=devnet`
+      );
+    }
+    if (logs.length > 0) {
+      console.log("  Program logs:");
+      logs.slice(-8).forEach((l: string) => console.log(`    ${l}`));
     } else {
-      console.log(`\n  ❌ FAILED (unexpected)`);
-      if (logs.length > 0) {
-        console.log("  Logs:");
-        logs.slice(-5).forEach((l: string) => console.log(`    ${l}`));
-      } else {
-        console.error(err.message || err);
-      }
+      console.error(`  Error: ${err.message || err}`);
     }
   }
 
@@ -575,7 +570,8 @@ async function main() {
       recipient.address,
       transferAmount,
       new Uint8Array(blacklistedProofResult.proof),
-      new Uint8Array(blacklistedProofResult.publicWitness)
+      new Uint8Array(blacklistedProofResult.publicWitness),
+      admin.address
     );
     console.log(`\n  ⚠️  UNEXPECTED SUCCESS - this should not happen!`);
     console.log(`  TX: ${sig}`);

@@ -8,6 +8,7 @@
   "dependencies": {
     "@solana/kit": "^5.1.0",
     "@solana-noir-examples/lib": "file:../../../lib",
+    "circomlibjs": "^0.1.7",
     "ws": "^8.18.0"
   },
   "devDependencies": {

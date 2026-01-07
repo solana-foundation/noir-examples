@@ -55,7 +55,7 @@ impl From<ExclusionError> for ProgramError {
 /// NOTE: This is a devnet example. For production, deploy your own verifier via
 /// `sunspot deploy` and update this constant with the resulting program ID.
 pub const ZK_VERIFIER_PROGRAM_ID: Pubkey =
-    solana_program::pubkey!("7bmTZpxFXvtZXthw3CDpruyb6fYFKbisEsg6R4dBX9TH");
+    solana_program::pubkey!("882JeC9v8gp79QjgVV9mhWhjFZYj1QG4QKdcqKvgRh3U");
 
 /// State account size: 8 (discriminator) + 32 (admin) + 32 (smt_root) = 72 bytes
 pub const STATE_SIZE: usize = 8 + 32 + 32;
@@ -83,16 +83,19 @@ pub fn process_instruction(
 
     match instruction_data[0] {
         instruction::INITIALIZE => process_initialize(program_id, accounts),
-        instruction::SET_SMT_ROOT => process_set_smt_root(accounts, &instruction_data[1..]),
+        instruction::SET_SMT_ROOT => {
+            process_set_smt_root(program_id, accounts, &instruction_data[1..])
+        }
         instruction::TRANSFER_SOL => process_transfer_sol(accounts, &instruction_data[1..]),
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
 
-/// Initialize the state account with an admin
+/// Initialize a user-specific state account
+/// Each admin gets their own state account (PDA derived from their pubkey)
 /// Accounts:
 ///   0. [signer, writable] Admin (payer)
-///   1. [writable] State account (PDA)
+///   1. [writable] State account (PDA: ["state", admin_pubkey])
 ///   2. [] System program
 fn process_initialize(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_iter = &mut accounts.iter();
@@ -104,8 +107,9 @@ fn process_initialize(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         return Err(ProgramError::MissingRequiredSignature);
     }
 
-    // Derive PDA for state account
-    let (state_pda, bump) = Pubkey::find_program_address(&[b"state"], program_id);
+    // Derive PDA for user-specific state account
+    let (state_pda, bump) =
+        Pubkey::find_program_address(&[b"state", admin.key.as_ref()], program_id);
     if state_account.key != &state_pda {
         msg!("Invalid state account PDA");
         return Err(ExclusionError::InvalidStatePda.into());
@@ -114,7 +118,7 @@ fn process_initialize(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     // Create state account
     let rent = Rent::get()?;
     let lamports = rent.minimum_balance(STATE_SIZE);
-    let signer_seeds: &[&[u8]] = &[b"state", &[bump]];
+    let signer_seeds: &[&[u8]] = &[b"state", admin.key.as_ref(), &[bump]];
 
     invoke_signed(
         &system_instruction::create_account(
@@ -138,14 +142,18 @@ fn process_initialize(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     Ok(())
 }
 
-/// Set the SMT root (admin only)
+/// Set the SMT root for the caller's state account
 ///
 /// Accounts:
 ///   0. [signer] Admin
-///   1. [writable] State account
+///   1. [writable] State account (PDA: ["state", admin_pubkey])
 ///
 /// Data: 32 bytes (new SMT root)
-fn process_set_smt_root(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+fn process_set_smt_root(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    data: &[u8],
+) -> ProgramResult {
     if data.len() != 32 {
         msg!("SMT root must be 32 bytes");
         return Err(ExclusionError::InvalidDataLength.into());
@@ -159,18 +167,19 @@ fn process_set_smt_root(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult 
         return Err(ProgramError::MissingRequiredSignature);
     }
 
-    // Verify state account
+    // Verify state account PDA matches admin
+    let (state_pda, _bump) =
+        Pubkey::find_program_address(&[b"state", admin.key.as_ref()], program_id);
+    if state_account.key != &state_pda {
+        msg!("State account does not match admin's PDA");
+        return Err(ExclusionError::InvalidStatePda.into());
+    }
+
+    // Verify state account discriminator
     let state_data = state_account.try_borrow_data()?;
     if state_data[0..8] != STATE_DISCRIMINATOR {
         msg!("Invalid state account");
         return Err(ExclusionError::InvalidStateAccount.into());
-    }
-
-    // Verify admin
-    let stored_admin = Pubkey::try_from(&state_data[8..40]).unwrap();
-    if &stored_admin != admin.key {
-        msg!("Only admin can set SMT root");
-        return Err(ExclusionError::UnauthorizedAdmin.into());
     }
     drop(state_data);
 

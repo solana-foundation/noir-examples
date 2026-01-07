@@ -120,6 +120,7 @@ verify-smt program_id="HEYDMuVw8sLE4tt5cnvu9iwMQMSWB16P1ezUx6sctepP":
 # Integration test: verify proof + SOL transfer (requires deployed programs)
 test-transfer-smt:
     cd circuits/smt_exclusion/client && npm run test-transfer
+    git checkout circuits/smt_exclusion/Prover.toml 2>/dev/null || true
 
 # Install client dependencies
 install-smt:

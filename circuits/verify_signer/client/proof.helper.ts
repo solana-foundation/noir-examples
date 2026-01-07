@@ -1,4 +1,5 @@
 import fs from "fs";
+import { buildPoseidon, type Poseidon } from "circomlibjs";
 import {
   type CircuitConfig,
   type ProofResult,
@@ -14,6 +15,54 @@ export {
   createInstructionData,
 } from "@solana-noir-examples/lib/proof";
 
+// Global poseidon instance (initialized lazily)
+let poseidonInstance: Poseidon | null = null;
+
+/** Initialize the Poseidon hasher (must be called before using hash functions) */
+export async function initPoseidon(): Promise<void> {
+  if (!poseidonInstance) {
+    poseidonInstance = await buildPoseidon();
+  }
+}
+
+/** Get the initialized Poseidon instance */
+function getPoseidon(): Poseidon {
+  if (!poseidonInstance) {
+    throw new Error("Poseidon not initialized. Call initPoseidon() first.");
+  }
+  return poseidonInstance;
+}
+
+/** Poseidon hash of two Field elements (Circom-compatible) */
+export function poseidonHash2(left: bigint, right: bigint): bigint {
+  const poseidon = getPoseidon();
+  const hash = poseidon([left, right]);
+  return poseidon.F.toObject(hash) as bigint;
+}
+
+/** Convert 16 bytes to Field (little-endian) - matches circuit's bytes16_to_field() */
+export function bytes16ToField(bytes: number[], start: number): bigint {
+  let result = 0n;
+  let multiplier = 1n;
+  for (let i = 0; i < 16; i++) {
+    result = result + BigInt(bytes[start + i]) * multiplier;
+    multiplier = multiplier * 256n;
+  }
+  return result;
+}
+
+/** Hash 32 bytes to a single Field - matches circuit's hash_bytes32() */
+export function hashBytes32(bytes: number[]): bigint {
+  const low = bytes16ToField(bytes, 0);
+  const high = bytes16ToField(bytes, 16);
+  return poseidonHash2(low, high);
+}
+
+/** Convert Field to 0x-prefixed hex string (64 chars) */
+export function fieldToHex(f: bigint): string {
+  return "0x" + f.toString(16).padStart(64, "0");
+}
+
 export interface VerifySignerInputs {
   hashed_message: number[];
   public_key_x: number[];
@@ -27,12 +76,14 @@ function formatByteArray(bytes: number[]): string {
 
 function writeVerifySignerProverToml(
   config: CircuitConfig,
-  inputs: VerifySignerInputs
+  inputs: VerifySignerInputs,
+  messageCommitment: bigint
 ): void {
   const toml = `hashed_message = ${formatByteArray(inputs.hashed_message)}
 public_key_x = ${formatByteArray(inputs.public_key_x)}
 public_key_y = ${formatByteArray(inputs.public_key_y)}
 signature = ${formatByteArray(inputs.signature)}
+message_commitment = "${fieldToHex(messageCommitment)}"
 `;
   fs.writeFileSync(getProverTomlPath(config), toml);
 }
@@ -41,7 +92,9 @@ export function generateProof(
   config: CircuitConfig,
   inputs: VerifySignerInputs
 ): ProofResult {
-  writeVerifySignerProverToml(config, inputs);
+  // Compute the message commitment (must match circuit's hash_bytes32)
+  const messageCommitment = hashBytes32(inputs.hashed_message);
+  writeVerifySignerProverToml(config, inputs, messageCommitment);
   generateWitness(config);
   generateGroth16Proof(config);
   return readProofFiles(config);

@@ -4,6 +4,9 @@ import {
   type CircuitConfig,
   generateProof,
   createInstructionData,
+  initPoseidon,
+  hashBytes32,
+  fieldToHex,
   TEST_VALUES,
 } from "./proof.helper.js";
 import {
@@ -16,7 +19,8 @@ const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
 // NOTE: This is a devnet example program ID. For production, deploy your own
 // verifier via `sunspot deploy` and set PROGRAM_ID environment variable.
-const PROGRAM_ID = process.env.PROGRAM_ID || "";
+const PROGRAM_ID =
+  process.env.PROGRAM_ID || "ATkeeV9JLEyCazAvFnf9EiiD3YpF5MouDjjPJ9n66CSW";
 
 const circuitConfig: CircuitConfig = {
   circuitDir: path.join(process.cwd(), ".."),
@@ -72,7 +76,15 @@ async function main() {
   const programId = address(programIdStr);
 
   try {
+    // Initialize poseidon hasher
+    await initPoseidon();
+
     console.log("Using test signature (SHA256 of 'Hello, Noir!')\n");
+
+    // Show the message commitment (public input)
+    const messageCommitment = hashBytes32(TEST_VALUES.hashed_message);
+    console.log(`Message commitment: ${fieldToHex(messageCommitment)}\n`);
+
     console.log(`Generating signature verification proof...\n`);
 
     const proofResult = generateProof(circuitConfig, TEST_VALUES);

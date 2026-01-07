@@ -1,19 +1,47 @@
 // Verify valid ECDSA signature without revealing the public key
 //
-// Public inputs:  hashed_message (what was signed)
-// Private inputs: public_key_x, public_key_y, signature
+// Public inputs:  message_commitment (poseidon hash of the message)
+// Private inputs: public_key_x, public_key_y, signature, hashed_message
 //
-// Proves: "I know a valid signature for this message"
+// Proves: "I know a valid signature for a message with this commitment"
 // Without revealing: which public key signed it
+//
+// The verifier receives message_commitment on-chain and hashed_message off-chain,
+// then verifies: poseidon(hashed_message) == message_commitment
 
+use dep::poseidon::poseidon::bn254::hash_2 as poseidon_hash_2;
 use std::ecdsa_secp256k1::verify_signature;
+
+/// Convert 16 bytes to Field (little-endian)
+fn bytes16_to_field(bytes: [u8; 32], start: u32) -> Field {
+    let mut result: Field = 0;
+    let mut multiplier: Field = 1;
+    for i in 0..16 {
+        result = result + (bytes[start + i] as Field) * multiplier;
+        multiplier = multiplier * 256;
+    }
+    result
+}
+
+/// Hash 32 bytes to a single Field using poseidon
+fn hash_bytes32(bytes: [u8; 32]) -> Field {
+    let low = bytes16_to_field(bytes, 0);
+    let high = bytes16_to_field(bytes, 16);
+    poseidon_hash_2([low, high])
+}
 
 fn main(
     public_key_x: [u8; 32],
     public_key_y: [u8; 32],
     signature: [u8; 64],
-    hashed_message: pub [u8; 32],
+    hashed_message: [u8; 32],
+    message_commitment: pub Field,
 ) {
+    // Verify the commitment matches the message
+    let computed_commitment = hash_bytes32(hashed_message);
+    assert(computed_commitment == message_commitment);
+
+    // Verify the signature
     assert(verify_signature(public_key_x, public_key_y, signature, hashed_message));
 }
 
@@ -43,5 +71,14 @@ fn test_verify_signature() {
         71, 47, 252, 186, 19, 217,
     ];
 
-    main(public_key_x, public_key_y, signature, hashed_message);
+    // Compute message commitment (poseidon hash of message bytes)
+    let message_commitment = hash_bytes32(hashed_message);
+
+    main(
+        public_key_x,
+        public_key_y,
+        signature,
+        hashed_message,
+        message_commitment,
+    );
 }
