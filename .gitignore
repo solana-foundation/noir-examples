@@ -1,6 +1,8 @@
 .claude/
 .vscode/
 **/target/
+!**/target/*.json
+**/target/*-keypair.json
 !**/target/*.ccs
 !**/target/*.pk
 !**/target/*.vk

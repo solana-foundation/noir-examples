@@ -8,9 +8,10 @@ default:
 # ============================================================================
 # Quick Start (run in order for first-time setup)
 # ============================================================================
-# 1. install-all    - Install dependencies
-# 2. test-all       - Run circuit unit tests
-# 3. verify-all     - Generate proofs & verify on-chain (uses pre-deployed verifiers)
+# 1. just install-all       - Install dependencies
+# 2. just test-all          - Run circuit unit tests
+# 3. just verify-all        - Verify proofs on-chain (uses pre-deployed verifiers)
+# 4. just test-transfer-smt - Integration test: ZK-gated SOL transfer
 
 # Install all dependencies (run this first!)
 install-all: install-lib install-one install-signer install-smt
@@ -54,8 +55,8 @@ test-one:
 execute-one:
     cd circuits/one && nargo execute
 
-# Generate proof (uses existing pk/ccs from repo)
-prove-one: compile-one execute-one
+# Generate proof (uses existing ACIR/pk/ccs from repo)
+prove-one: execute-one
     cd circuits/one && sunspot prove target/one.json target/one.gz target/one.ccs target/one.pk
 
 # Verify proof on-chain (requires deployed verifier program)
@@ -97,8 +98,8 @@ execute-signer:
 gen-signer-values:
     cd circuits/verify_signer && python3 generate_prover_values.py
 
-# Generate proof (uses existing pk/ccs from repo)
-prove-signer: compile-signer execute-signer
+# Generate proof (uses existing ACIR/pk/ccs from repo)
+prove-signer: execute-signer
     cd circuits/verify_signer && sunspot prove target/verify_signer.json target/verify_signer.gz target/verify_signer.ccs target/verify_signer.pk
 
 # Verify proof on-chain (requires deployed verifier program)
@@ -136,8 +137,8 @@ test-smt:
 execute-smt:
     cd circuits/smt_exclusion && nargo execute
 
-# Generate proof (uses existing pk/ccs from repo)
-prove-smt: compile-smt execute-smt
+# Generate proof (uses existing ACIR/pk/ccs from repo)
+prove-smt: execute-smt
     cd circuits/smt_exclusion && sunspot prove target/smt_exclusion.json target/smt_exclusion.gz target/smt_exclusion.ccs target/smt_exclusion.pk
 
 # Verify proof on-chain (requires deployed verifier program)

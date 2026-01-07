@@ -576,7 +576,7 @@ async function main() {
     console.log(`\n  ⚠️  UNEXPECTED SUCCESS - this should not happen!`);
     console.log(`  TX: ${sig}`);
   } catch (err: any) {
-    console.log(`\n  ❌ FAILED (as expected)`);
+    console.log(`\n  ✅ BLOCKED (as expected)`);
     if (err.message?.includes("nargo") || err.message?.includes("circuit")) {
       console.log("  Reason: Circuit rejected proof (leaf_value != 0)");
     } else {
@@ -613,10 +613,8 @@ async function main() {
   );
   console.log("SUMMARY");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  Test 1 (Allowed):       ✅ Succeeded - valid exclusion proof");
-  console.log(
-    "  Test 2 (Blacklisted):   ❌ Failed locally - circuit rejects leaf=1"
-  );
+  console.log("  Test 1 (Allowed):       ✅ Transfer succeeded");
+  console.log("  Test 2 (Blacklisted):   ✅ Transfer blocked (as expected)");
   console.log("\nSecurity layers demonstrated:");
   console.log("  1. Circuit-level:  Blacklisted users can't generate proofs");
   console.log("  2. Pubkey binding: Proofs are bound to specific pubkeys");
