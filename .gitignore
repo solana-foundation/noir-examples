@@ -1,6 +1,9 @@
 .claude/
 .vscode/
 **/target/
+!**/target/*.ccs
+!**/target/*.pk
+!**/target/*.vk
 **/node_modules/
 **/keypair/
 .DS_Store

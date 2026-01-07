@@ -6,8 +6,18 @@ default:
     @just --list
 
 # ============================================================================
-# All Circuits
+# Quick Start (run in order for first-time setup)
 # ============================================================================
+# 1. install-all    - Install dependencies
+# 2. test-all       - Run circuit unit tests
+# 3. verify-all     - Generate proofs & verify on-chain (uses pre-deployed verifiers)
+
+# Install all dependencies (run this first!)
+install-all: install-lib install-one install-signer install-smt
+
+# Install shared lib dependencies
+install-lib:
+    cd lib && pnpm install
 
 # Test all circuits (nargo test)
 test-all: test-one test-signer test-smt
@@ -15,51 +25,51 @@ test-all: test-one test-signer test-smt
 # Compile all circuits
 compile-all: compile-one compile-signer compile-smt
 
+# Generate proofs for all circuits (uses existing keys)
+prove-all: prove-one prove-signer prove-smt
+
 # Verify all proofs on-chain (requires deployed verifiers)
 verify-all: verify-one verify-signer verify-smt
 
 # Run all integration tests (requires deployed programs)
 integration-test-all: verify-all test-transfer-smt
 
-# Install all client dependencies
-install-all: install-lib install-one install-signer install-smt
-
-# Install shared lib dependencies
-install-lib:
-    cd lib && pnpm install
-
 # ============================================================================
 # circuits/one (simple assert x != y)
 # ============================================================================
 
-# Compile one
+# Install client dependencies
+install-one:
+    cd circuits/one/client && pnpm install
+
+# Compile circuit
 compile-one:
     cd circuits/one && nargo compile
 
-# Test one
+# Run circuit tests
 test-one:
     cd circuits/one && nargo test
 
-# Generate witness for one
+# Generate witness
 execute-one:
     cd circuits/one && nargo execute
+
+# Generate proof (uses existing pk/ccs from repo)
+prove-one: compile-one execute-one
+    cd circuits/one && sunspot prove target/one.json target/one.gz target/one.ccs target/one.pk
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-one x="1" y="2":
     cd circuits/one/client && pnpm run verify -- {{x}} {{y}}
     git checkout circuits/one/Prover.toml 2>/dev/null || true
 
-# Install client dependencies
-install-one:
-    cd circuits/one/client && pnpm install
-
-# Full Sunspot pipeline for one
-prove-one: compile-one execute-one
+# Full Sunspot setup (regenerates keys - only needed if circuit changes)
+setup-one: compile-one execute-one
     cd circuits/one && sunspot compile target/one.json
     cd circuits/one && sunspot setup target/one.ccs
     cd circuits/one && sunspot prove target/one.json target/one.gz target/one.ccs target/one.pk
 
-# Build Solana verifier for one
+# Build Solana verifier program
 build-verifier-one:
     cd circuits/one && sunspot deploy target/one.vk
 
@@ -67,15 +77,19 @@ build-verifier-one:
 # circuits/verify_signer (ECDSA signature verification)
 # ============================================================================
 
-# Compile verify_signer
+# Install client dependencies
+install-signer:
+    cd circuits/verify_signer/client && pnpm install
+
+# Compile circuit
 compile-signer:
     cd circuits/verify_signer && nargo compile
 
-# Test verify_signer
+# Run circuit tests
 test-signer:
     cd circuits/verify_signer && nargo test
 
-# Generate witness for verify_signer
+# Generate witness
 execute-signer:
     cd circuits/verify_signer && nargo execute
 
@@ -83,22 +97,22 @@ execute-signer:
 gen-signer-values:
     cd circuits/verify_signer && python3 generate_prover_values.py
 
-# Install client dependencies
-install-signer:
-    cd circuits/verify_signer/client && pnpm install
+# Generate proof (uses existing pk/ccs from repo)
+prove-signer: compile-signer execute-signer
+    cd circuits/verify_signer && sunspot prove target/verify_signer.json target/verify_signer.gz target/verify_signer.ccs target/verify_signer.pk
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-signer program_id="7uatSejNcJvmp8G19F6F54uyzLkkMYnEgD58pFTTuW1A":
     cd circuits/verify_signer/client && pnpm run verify -- --program {{program_id}}
     git checkout circuits/verify_signer/Prover.toml 2>/dev/null || true
 
-# Full Sunspot pipeline for verify_signer
-prove-signer: compile-signer execute-signer
+# Full Sunspot setup (regenerates keys - only needed if circuit changes)
+setup-signer: compile-signer execute-signer
     cd circuits/verify_signer && sunspot compile target/verify_signer.json
     cd circuits/verify_signer && sunspot setup target/verify_signer.ccs
     cd circuits/verify_signer && sunspot prove target/verify_signer.json target/verify_signer.gz target/verify_signer.ccs target/verify_signer.pk
 
-# Build Solana verifier for verify_signer
+# Build Solana verifier program
 build-verifier-signer:
     cd circuits/verify_signer && sunspot deploy target/verify_signer.vk
 
@@ -106,17 +120,25 @@ build-verifier-signer:
 # circuits/smt_exclusion (SMT blacklist exclusion proof)
 # ============================================================================
 
-# Compile smt_exclusion
+# Install client dependencies
+install-smt:
+    cd circuits/smt_exclusion/client && pnpm install
+
+# Compile circuit
 compile-smt:
     cd circuits/smt_exclusion && nargo compile
 
-# Test smt_exclusion
+# Run circuit tests
 test-smt:
     cd circuits/smt_exclusion && nargo test
 
-# Generate witness for smt_exclusion
+# Generate witness
 execute-smt:
     cd circuits/smt_exclusion && nargo execute
+
+# Generate proof (uses existing pk/ccs from repo)
+prove-smt: compile-smt execute-smt
+    cd circuits/smt_exclusion && sunspot prove target/smt_exclusion.json target/smt_exclusion.gz target/smt_exclusion.ccs target/smt_exclusion.pk
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-smt program_id="548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN":
@@ -128,17 +150,13 @@ test-transfer-smt:
     cd circuits/smt_exclusion/client && pnpm run test-transfer
     git checkout circuits/smt_exclusion/Prover.toml 2>/dev/null || true
 
-# Install client dependencies
-install-smt:
-    cd circuits/smt_exclusion/client && pnpm install
-
-# Full Sunspot pipeline for smt_exclusion
-prove-smt: compile-smt execute-smt
+# Full Sunspot setup (regenerates keys - only needed if circuit changes)
+setup-smt: compile-smt execute-smt
     cd circuits/smt_exclusion && sunspot compile target/smt_exclusion.json
     cd circuits/smt_exclusion && sunspot setup target/smt_exclusion.ccs
     cd circuits/smt_exclusion && sunspot prove target/smt_exclusion.json target/smt_exclusion.gz target/smt_exclusion.ccs target/smt_exclusion.pk
 
-# Build Solana verifier for smt_exclusion
+# Build Solana verifier program
 build-verifier-smt:
     cd circuits/smt_exclusion && sunspot deploy target/smt_exclusion.vk
 
@@ -162,7 +180,7 @@ fmt-check:
     cd circuits/smt_exclusion/on_chain_program && cargo fmt --check
     cd lib && npx prettier --check "../**/*.ts"
 
-# Check nargo version
+# Check nargo/sunspot versions
 version:
     nargo --version
     sunspot --version || echo "sunspot not installed"
