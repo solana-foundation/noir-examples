@@ -13,7 +13,6 @@ Proves that `x != y` without revealing the values. The simplest possible circuit
 just test-one        # Run circuit tests
 just compile-one     # Compile circuit
 just prove-one       # Generate proof
-just deploy-one      # Deploy verifier to Solana
 just verify-one      # Verify proof on-chain
 ```
 

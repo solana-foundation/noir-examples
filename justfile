@@ -20,7 +20,7 @@ install-all: install-lib install-one install-signer install-smt
 
 # Install shared lib dependencies
 install-lib:
-    cd lib && npm install
+    cd lib && pnpm install
 
 # ============================================================================
 # circuits/one (simple assert x != y)
@@ -40,12 +40,12 @@ execute-one:
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-one x="1" y="2":
-    cd circuits/one/client && npm run verify -- {{x}} {{y}}
+    cd circuits/one/client && pnpm run verify -- {{x}} {{y}}
     git checkout circuits/one/Prover.toml 2>/dev/null || true
 
 # Install client dependencies
 install-one:
-    cd circuits/one/client && npm install
+    cd circuits/one/client && pnpm install
 
 # Full Sunspot pipeline for one
 prove-one: compile-one execute-one
@@ -79,11 +79,11 @@ gen-signer-values:
 
 # Install client dependencies
 install-signer:
-    cd circuits/verify_signer/client && npm install
+    cd circuits/verify_signer/client && pnpm install
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-signer program_id:
-    cd circuits/verify_signer/client && npm run verify -- --program {{program_id}}
+    cd circuits/verify_signer/client && pnpm run verify -- --program {{program_id}}
     git checkout circuits/verify_signer/Prover.toml 2>/dev/null || true
 
 # Full Sunspot pipeline for verify_signer
@@ -114,16 +114,16 @@ execute-smt:
 
 # Verify proof on-chain (requires deployed verifier program)
 verify-smt program_id="HEYDMuVw8sLE4tt5cnvu9iwMQMSWB16P1ezUx6sctepP":
-    cd circuits/smt_exclusion/client && npm run verify -- --program {{program_id}}
+    cd circuits/smt_exclusion/client && pnpm run verify -- --program {{program_id}}
     git checkout circuits/smt_exclusion/Prover.toml 2>/dev/null || true
 
 # Integration test: verify proof + SOL transfer (requires deployed programs)
 test-transfer-smt:
-    cd circuits/smt_exclusion/client && npm run test-transfer
+    cd circuits/smt_exclusion/client && pnpm run test-transfer
 
 # Install client dependencies
 install-smt:
-    cd circuits/smt_exclusion/client && npm install
+    cd circuits/smt_exclusion/client && pnpm install
 
 # Full Sunspot pipeline for smt_exclusion
 prove-smt: compile-smt execute-smt

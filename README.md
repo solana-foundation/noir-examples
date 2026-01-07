@@ -2,17 +2,27 @@
 
 Zero-knowledge proof circuits written in [Noir](https://noir-lang.org/) with on-chain verification on [Solana](https://solana.com/) using [Groth16](https://eprint.iacr.org/2016/260) via [Sunspot](https://github.com/reilabs/sunspot).
 
-## Circuits
+## What's a Circuit?
 
-| Circuit | Description | Proof Size |
-|---------|-------------|------------|
-| [one](./circuits/one/) | Simple assertion (`x != y`) | 324-388 bytes |
-| [verify_signer](./circuits/verify_signer/) | ECDSA secp256k1 signature verification | ~388 bytes |
-| [smt_exclusion](./circuits/smt_exclusion/) | Sparse Merkle Tree blacklist exclusion proof | 388 bytes |
+A circuit is a program that defines a computation you can *prove* you executed correctly—without revealing your private inputs. Think of it as a function where you can say "I know inputs that satisfy these constraints" and generate cryptographic proof, without exposing those inputs.
+
+Jump to [Pipeline Overview](#pipeline-overview) to see how the circuits are built and verified.
+
+## Example Circuits
+
+This repo contains three example circuits:
+
+| Circuit | Description | Proof Size | Devnet Verifier |
+|---------|-------------|------------|-----------------|
+| [one](./circuits/one/) | Simple assertion (`x != y`) | 324-388 bytes | Deployed |
+| [verify_signer](./circuits/verify_signer/) | ECDSA secp256k1 signature verification | ~388 bytes | Not deployed |
+| [smt_exclusion](./circuits/smt_exclusion/) | Sparse Merkle Tree blacklist exclusion proof | 388 bytes | Deployed |
+
+> **Note:** The `smt_exclusion` circuit also includes a custom [on-chain program](./circuits/smt_exclusion/on_chain_program/) that demonstrates CPI (cross-program invocation) to the ZK verifier.
 
 ## Prerequisites
 
-- [Nargo](https://noir-lang.org/docs/getting_started/installation/) `1.0.0-beta.13`
+- [Nargo](https://noir-lang.org/docs/getting_started/noir_installation) `1.0.0-beta.13`
 - [Sunspot](https://github.com/reilabs/sunspot) (requires Go 1.24+)
 - [Solana CLI](https://solana.com/docs/intro/installation)
 - Node.js 18+ (for TypeScript clients)
@@ -34,30 +44,34 @@ Each circuit requires a deployer keypair for on-chain verification. Generate one
 
 ```bash
 # Create keypair directories
-mkdir -p circuits/one/keypair circuits/smt_exclusion/keypair
+mkdir -p circuits/one/keypair circuits/smt_exclusion/keypair circuits/verify_signer/keypair
 
 # Generate deployer keypairs
-solana-keygen new --outfile circuits/one/keypair/deployer.json
-solana-keygen new --outfile circuits/smt_exclusion/keypair/deployer.json
+solana-keygen new --outfile circuits/one/keypair/deployer.json --no-bip39-passphrase -s
+solana-keygen new --outfile circuits/smt_exclusion/keypair/deployer.json --no-bip39-passphrase -s
+solana-keygen new --outfile circuits/verify_signer/keypair/deployer.json --no-bip39-passphrase -s
 
 # Fund on devnet
-solana airdrop 2 $(solana-keygen pubkey circuits/one/keypair/deployer.json) --url devnet
-solana airdrop 2 $(solana-keygen pubkey circuits/smt_exclusion/keypair/deployer.json) --url devnet
+solana airdrop 2 $(solana address -k circuits/one/keypair/deployer.json) --url devnet
+solana airdrop 2 $(solana address -k circuits/smt_exclusion/keypair/deployer.json) --url devnet
+solana airdrop 2 $(solana address -k circuits/verify_signer/keypair/deployer.json) --url devnet
 ```
+
+If you hit airdrop limits using Solana CLI, you can use the [Solana Faucet](https://faucet.solana.com/) to get more SOL.
 
 > **Warning:** Never commit keypair files. They are excluded via `.gitignore`.
 
 ## Quick Start
 
 ```bash
+# Install all dependencies
+just install-all
+
 # Test all circuits
 just test-all
 
 # Compile all circuits
 just compile-all
-
-# Install all dependencies
-just install-all
 
 # See all available commands
 just --list
@@ -75,14 +89,32 @@ Each circuit follows the same workflow:
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-1. **Write circuit** in Noir (`src/main.nr`)
-2. **Compile** with `nargo compile` → ACIR bytecode
-3. **Execute** with `nargo execute` → witness
-4. **Convert** with `sunspot compile` → Gnark constraint system
-5. **Setup** with `sunspot setup` → proving/verifying keys
-6. **Prove** with `sunspot prove` → Groth16 proof
-7. **Deploy** with `sunspot deploy` → Solana verifier program
-8. **Verify** on-chain by sending proof as transaction data
+### Noir (off-chain circuit development)
+
+| Step | Command | Output | What it does |
+|------|---------|--------|--------------|
+| 1. Write | — | `src/main.nr` | Define your circuit logic in Noir |
+| 2. Test | `nargo test` | — | Run unit tests locally (no proof generated) |
+| 3. Compile | `nargo compile` | `target/<name>.json` | Convert Noir to ACIR bytecode |
+| 4. Execute | `nargo execute` | `target/<name>.gz` | Run circuit with inputs to generate witness |
+
+### Sunspot (proof generation & verifier creation)
+
+| Step | Command | Output | What it does |
+|------|---------|--------|--------------|
+| 5. Convert | `sunspot compile` | `.ccs` | Transform ACIR to Gnark constraint system |
+| 6. Setup | `sunspot setup` | `.pk`, `.vk` | Generate proving key and verifying key |
+| 7. Prove | `sunspot prove` | `.proof`, `.pw` | Generate Groth16 proof from witness |
+| 8. Build verifier | `sunspot deploy` | `verifier.so` | Create Solana program with VK baked in |
+
+### Solana (on-chain verification)
+
+| Step | Command | Output | What it does |
+|------|---------|--------|--------------|
+| 9. Deploy | `solana program deploy` | Program ID | Deploy verifier program to Solana |
+| 10. Verify | `just verify-*` | Transaction | Send proof to verifier, succeeds if valid |
+
+> **Important:** Verifier programs (`.so` files) are **not checked into this repo**. You must generate and deploy your own using steps 5-9. The "Devnet Verifier: Deployed" status in the table above refers to pre-deployed programs for testing, but they use different keys than what you'll generate locally.
 
 ## Project Structure
 

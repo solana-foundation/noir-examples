@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "verify": "npx tsx verify.ts",
-    "test-transfer": "npx tsx test-transfer.ts"
+    "verify": "tsx verify.ts",
+    "test-transfer": "tsx test-transfer.ts"
   },
   "dependencies": {
     "@solana/kit": "^5.1.0",
