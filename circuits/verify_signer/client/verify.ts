@@ -14,6 +14,7 @@ import {
   printTransactionResult,
   handleVerifyError,
 } from "@solana-noir-examples/lib/verify";
+import { getAddressFromKeypairFile } from "@solana-noir-examples/lib/keypair";
 
 const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
@@ -24,7 +25,8 @@ const WS_URL =
 // NOTE: This is a devnet example program ID. For production, deploy your own
 // verifier via `sunspot deploy` and set PROGRAM_ID environment variable.
 const PROGRAM_ID =
-  process.env.PROGRAM_ID || "7uatSejNcJvmp8G19F6F54uyzLkkMYnEgD58pFTTuW1A";
+  process.env.PROGRAM_ID ||
+  (await getAddressFromKeypairFile("../target/verify_signer-keypair.json"));
 
 const circuitConfig: CircuitConfig = {
   circuitDir: path.join(process.cwd(), ".."),

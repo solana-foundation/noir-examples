@@ -103,8 +103,8 @@ prove-signer: execute-signer
     cd circuits/verify_signer && sunspot prove target/verify_signer.json target/verify_signer.gz target/verify_signer.ccs target/verify_signer.pk
 
 # Verify proof on-chain (requires deployed verifier program)
-verify-signer program_id="7uatSejNcJvmp8G19F6F54uyzLkkMYnEgD58pFTTuW1A":
-    cd circuits/verify_signer/client && pnpm run verify -- --program {{program_id}}
+verify-signer:
+    cd circuits/verify_signer/client && pnpm run verify
     git checkout circuits/verify_signer/Prover.toml 2>/dev/null || true
 
 # Full Sunspot setup (regenerates keys - only needed if circuit changes)
@@ -142,8 +142,8 @@ prove-smt: execute-smt
     cd circuits/smt_exclusion && sunspot prove target/smt_exclusion.json target/smt_exclusion.gz target/smt_exclusion.ccs target/smt_exclusion.pk
 
 # Verify proof on-chain (requires deployed verifier program)
-verify-smt program_id="548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN":
-    cd circuits/smt_exclusion/client && pnpm run verify -- --program {{program_id}}
+verify-smt:
+    cd circuits/smt_exclusion/client && pnpm run verify
     git checkout circuits/smt_exclusion/Prover.toml 2>/dev/null || true
 
 # Integration test: verify proof + SOL transfer (requires deployed programs)
