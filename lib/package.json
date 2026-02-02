@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     "./proof": "./proof.js",
-    "./verify": "./verify.js"
+    "./verify": "./verify.js",
+    "./keypair": "./keypair.js"
   },
   "scripts": {
     "build": "tsc"

@@ -53,6 +53,7 @@ import {
   fieldToHex,
   initPoseidon,
 } from "./smt.js";
+import { getAddressFromKeypairFile } from "@solana-noir-examples/lib/keypair";
 
 // ============================================================================
 // Configuration
@@ -66,12 +67,14 @@ const WS_URL =
 
 const ZK_VERIFIER_PROGRAM_ID = address(
   process.env.ZK_VERIFIER_PROGRAM_ID ||
-    "548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN"
+    (await getAddressFromKeypairFile("../target/smt_exclusion-keypair.json"))
 );
 
 const EXCLUSION_PROGRAM_ID = address(
   process.env.EXCLUSION_PROGRAM_ID ||
-    "4WvvKAwJ2hYRqaceZyyS3s51V68LbfGsXWut7gsGnqaZ"
+    (await getAddressFromKeypairFile(
+      "../on_chain_program/target/deploy/exclusion_program_example-keypair.json"
+    ))
 );
 
 const circuitConfig: CircuitConfig = {

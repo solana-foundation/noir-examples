@@ -19,6 +19,7 @@ import {
   printTransactionResult,
   handleVerifyError,
 } from "@solana-noir-examples/lib/verify";
+import { getAddressFromKeypairFile } from "@solana-noir-examples/lib/keypair";
 
 const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
@@ -29,7 +30,8 @@ const WS_URL =
 // NOTE: This is a devnet example program ID. For production, deploy your own
 // verifier via `sunspot deploy` and set PROGRAM_ID environment variable.
 const PROGRAM_ID =
-  process.env.PROGRAM_ID || "548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN";
+  process.env.PROGRAM_ID ||
+  (await getAddressFromKeypairFile("../target/smt_exclusion-keypair.json"));
 
 const circuitConfig: CircuitConfig = {
   circuitDir: path.join(process.cwd(), ".."),
