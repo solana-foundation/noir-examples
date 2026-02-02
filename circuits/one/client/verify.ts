@@ -13,6 +13,10 @@ import {
 
 const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
+const WS_URL =
+  process.env.WS_URL ||
+  RPC_URL.replace("https://", "wss://").replace("http://", "ws://");
+
 // NOTE: This is a devnet example program ID. For production, deploy your own
 // verifier via `sunspot deploy` and set PROGRAM_ID environment variable.
 const PROGRAM_ID =
@@ -64,6 +68,7 @@ async function main() {
 
     const sig = await verifyOnChain(instructionData, {
       rpcUrl: RPC_URL,
+      wsUrl: WS_URL,
       programId: address(PROGRAM_ID),
       walletPath,
     });

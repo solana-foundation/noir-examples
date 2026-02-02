@@ -19,6 +19,7 @@ import fs from "fs";
 
 export interface VerifyConfig {
   rpcUrl: string;
+  wsUrl: string;
   programId: Address;
   walletPath: string;
   computeUnits?: number;
@@ -41,9 +42,7 @@ export async function verifyOnChain(
   console.log(`Program: ${config.programId}`);
 
   const rpc = createSolanaRpc(config.rpcUrl);
-  const rpcSubscriptions = createSolanaRpcSubscriptions(
-    config.rpcUrl.replace("https://", "wss://").replace("http://", "ws://")
-  );
+  const rpcSubscriptions = createSolanaRpcSubscriptions(config.wsUrl);
   console.log(`RPC: ${config.rpcUrl}\n`);
 
   const balanceResult = await rpc.getBalance(wallet.address).send();

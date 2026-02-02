@@ -60,6 +60,10 @@ import {
 
 const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 
+const WS_URL =
+  process.env.WS_URL ||
+  RPC_URL.replace("https://", "wss://").replace("http://", "ws://");
+
 const ZK_VERIFIER_PROGRAM_ID = address(
   process.env.ZK_VERIFIER_PROGRAM_ID ||
     "548u4SFWZMaRWZQqdyAgm66z7VRYtNHHF2sr7JTBXbwN"
@@ -121,11 +125,9 @@ interface RpcContext {
   sendAndConfirm: ReturnType<typeof sendAndConfirmTransactionFactory>;
 }
 
-function createRpcContext(rpcUrl: string): RpcContext {
+function createRpcContext(rpcUrl: string, wsUrl: string): RpcContext {
   const rpc = createSolanaRpc(rpcUrl);
-  const rpcSubscriptions = createSolanaRpcSubscriptions(
-    rpcUrl.replace("https://", "wss://").replace("http://", "ws://")
-  );
+  const rpcSubscriptions = createSolanaRpcSubscriptions(wsUrl);
   const sendAndConfirm = sendAndConfirmTransactionFactory({
     rpc,
     rpcSubscriptions,
@@ -294,7 +296,7 @@ async function main() {
 
   await initPoseidon();
 
-  const ctx = createRpcContext(RPC_URL);
+  const ctx = createRpcContext(RPC_URL, WS_URL);
   console.log(`RPC: ${RPC_URL}`);
   console.log(`ZK Verifier: ${ZK_VERIFIER_PROGRAM_ID}`);
   console.log(`Exclusion Program: ${EXCLUSION_PROGRAM_ID}\n`);
